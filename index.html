@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>100 Push-ups — The Challenge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;600;700;800&family=Archivo+Black&display=swap');
+
+  :root{
+    --bg: #14100D;
+    --panel: #1E1712;
+    --panel-2: #251C15;
+    --line: #372A20;
+    --text: #F2ECE4;
+    --muted: #9C9086;
+    --fire-1: #FF6B1A;
+    --fire-2: #FFB627;
+    --fire-3: #E8432B;
+    --yog: #CFE4E8;
+    --yog-dim: #7C9599;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Archivo', system-ui, sans-serif; min-height:100%;}
+
+  body{
+    background-image:
+      radial-gradient(ellipse 60% 40% at 15% 0%, rgba(255,107,26,0.07), transparent 60%),
+      radial-gradient(ellipse 50% 30% at 90% 10%, rgba(232,67,43,0.05), transparent 60%);
+  }
+
+  .wrap{max-width:640px; margin:0 auto; padding:20px 16px 60px;}
+
+  /* ---------- Header ---------- */
+  header{padding: 18px 0 20px; border-bottom:1px solid var(--line); margin-bottom:20px;}
+  .top-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .eyebrow{
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--fire-2);
+    font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:''; width:16px; height:2px; background:var(--fire-2); display:inline-block;}
+  h1{
+    font-family:'Anton', 'Archivo Black', sans-serif; font-weight:400;
+    font-size:38px; line-height:0.95; margin:0 0 10px; letter-spacing:0.01em;
+    background: linear-gradient(100deg, var(--text) 40%, var(--fire-2) 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{color:var(--muted); font-size:14px; line-height:1.5;}
+
+  .whoami{
+    display:flex; align-items:center; gap:6px; background:var(--panel); border:1px solid var(--line);
+    padding:7px 10px 7px 12px; border-radius:100px; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer;
+  }
+  .whoami .dot{width:7px; height:7px; border-radius:50%; background:var(--fire-2);}
+  .whoami small{color:var(--muted); font-weight:600; text-transform:uppercase; font-size:9px; margin-left:4px;}
+
+  .day-badge{
+    display:inline-flex; align-items:baseline; gap:6px; margin-top:14px;
+    background:var(--panel); border:1px solid var(--line); padding:8px 14px; border-radius:100px;
+  }
+  .day-badge .num{font-family:'Anton',sans-serif; font-size:20px; color:var(--fire-2);}
+  .day-badge .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+
+  /* ---------- Sections ---------- */
+  .section-title{
+    font-size:12px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted);
+    font-weight:700; margin: 28px 0 12px; display:flex; align-items:center; gap:10px;
+  }
+  .section-title::after{content:''; flex:1; height:1px; background:var(--line);}
+
+  /* ---------- Quick check-in ---------- */
+  .quick-checkin{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px;
+    margin-bottom:8px;
+  }
+  .quick-checkin .qc-label{font-size:12px; color:var(--muted); margin-bottom:10px; text-align:center;}
+  .quick-checkin .qc-label strong{color:var(--text);}
+  .qc-buttons{display:flex; gap:10px;}
+  .qc-btn{
+    flex:1; padding:16px 10px; border-radius:12px; font-weight:800; font-size:14px;
+    border:1.5px solid var(--line); background:var(--panel-2); color:var(--text); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:4px; font-family:inherit;
+  }
+  .qc-btn .ico{font-size:26px;}
+  .qc-btn.active-done{border-color:var(--fire-2); background:linear-gradient(160deg, rgba(255,107,26,0.22), rgba(232,67,43,0.10));}
+  .qc-btn.active-fail{border-color:var(--yog-dim); background:linear-gradient(160deg, rgba(124,149,153,0.22), rgba(35,43,45,0.3));}
+  .qc-btn:active{transform:scale(0.97);}
+  .qc-note{text-align:center; font-size:12px; color:var(--muted); margin-top:10px;}
+  .reminder-row{
+    display:flex; align-items:center; gap:8px; margin-top:14px; padding-top:14px;
+    border-top:1px solid var(--line); flex-wrap:wrap; justify-content:center;
+  }
+  .reminder-lbl{font-size:12px; color:var(--muted); font-weight:700;}
+  .reminder-row input[type="time"]{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:6px 8px; border-radius:8px; font-family:inherit; font-size:13px;
+  }
+  .reminder-btn{
+    background:var(--panel-2); border:1.5px solid var(--fire-2); color:var(--fire-2);
+    font-weight:800; padding:8px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit;
+  }
+  .reminder-btn:active{transform:scale(0.96);}
+  .export-link{
+    background:none; border:none; color:var(--muted); font-size:11.5px; font-weight:700;
+    text-decoration:underline; cursor:pointer; font-family:inherit; padding:0;
+  }
+  .export-link:hover{color:var(--fire-2);}
+
+  /* ---------- Add friend ---------- */
+  .add-row{display:flex; gap:8px; margin-bottom:14px;}
+  .add-row input{
+    flex:1; background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:12px 14px; border-radius:10px; font-size:15px; font-family:inherit;
+  }
+  .add-row input:focus{outline:none; border-color:var(--fire-1);}
+  .add-row button{
+    background:linear-gradient(135deg, var(--fire-1), var(--fire-3));
+    border:none; color:#fff; font-weight:700; padding:0 20px; border-radius:10px;
+    font-size:14px; cursor:pointer; font-family:inherit;
+  }
+  .add-row button:active{transform:scale(0.97);}
+
+  .friend-chip{
+    display:inline-flex; align-items:center; gap:8px; background:var(--panel);
+    border:1px solid var(--line); padding:6px 6px 6px 14px; border-radius:100px;
+    margin:0 8px 8px 0; font-size:13px; font-weight:600;
+  }
+  .friend-chip.is-me{border-color:var(--fire-2); background:rgba(255,182,39,0.08);}
+  .friend-chip button{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
+    width:20px; height:20px; border-radius:50%; font-size:12px; cursor:pointer; line-height:1;
+    display:flex; align-items:center; justify-content:center; font-family:inherit;
+  }
+  .friend-chip button:hover{color:var(--fire-3); border-color:var(--fire-3);}
+  .friends-list{margin-bottom:8px;}
+
+  /* ---------- Grid ---------- */
+  .grid-scroll{overflow-x:auto; margin: 0 -16px; padding: 0 16px;}
+  table{border-collapse:separate; border-spacing:0 8px; width:100%; min-width:600px;}
+  th{
+    font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700;
+    letter-spacing:.06em; padding-bottom:4px; line-height:1.4;
+  }
+  th.name-col, td.name-col{text-align:left; padding-left:4px; min-width:110px;}
+  th.day-col{width:46px; text-align:center;}
+  th.day-col.is-today{color:var(--fire-2);}
+  td{background:var(--panel); padding:10px 4px; text-align:center; border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  td.name-col{
+    font-weight:700; font-size:14px; border-left:1px solid var(--line); border-radius:10px 0 0 10px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;
+  }
+  tr.me-row td{background:var(--panel-2);}
+  tr.me-row td.name-col{border-left:2px solid var(--fire-2);}
+  td.streak-col{border-right:1px solid var(--line); border-radius:0 10px 10px 0; font-size:12px; color:var(--muted); font-weight:700;}
+  tr td:not(.name-col):not(.streak-col){border-radius:0;}
+
+  .cell-btn{
+    width:34px; height:34px; border-radius:9px; border:1.5px dashed var(--line);
+    background:rgba(255,255,255,0.02); cursor:pointer; font-size:17px;
+    display:flex; align-items:center; justify-content:center; position:relative;
+    transition: transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .cell-btn.today-col{border-color:rgba(255,182,39,0.5);}
+  .cell-btn.done{
+    border:1.5px solid transparent;
+    background: radial-gradient(circle at 50% 120%, var(--fire-2), var(--fire-1) 55%, var(--fire-3) 100%);
+    box-shadow: 0 0 14px rgba(255,107,26,0.55);
+  }
+  .cell-btn.fail{
+    border:1.5px solid var(--yog-dim);
+    background: linear-gradient(160deg, #3a4547, #232b2d);
+  }
+  .cell-btn:active{transform:scale(0.88);}
+
+  @keyframes ignite{
+    0%{ transform:scale(0.6) rotate(-8deg); filter:brightness(1);}
+    35%{ transform:scale(1.25) rotate(4deg); filter:brightness(1.6);}
+    60%{ transform:scale(0.92) rotate(-2deg);}
+    100%{ transform:scale(1) rotate(0deg); filter:brightness(1);}
+  }
+  .cell-btn.done.igniting{animation: ignite .45s cubic-bezier(.34,1.56,.64,1);}
+  .cell-btn.done.igniting::before{
+    content:''; position:absolute; inset:-10px; border-radius:50%;
+    background: radial-gradient(circle, rgba(255,182,39,0.55), transparent 65%);
+    animation: burst .5s ease-out forwards;
+  }
+  @keyframes burst{
+    0%{ opacity:0.9; transform:scale(0.3);}
+    100%{ opacity:0; transform:scale(1.8);}
+  }
+  @keyframes plop{
+    0%{ transform:scale(0.6) translateY(4px); opacity:0.4;}
+    100%{ transform:scale(1) translateY(0); opacity:1;}
+  }
+  .cell-btn.fail.plopping{animation: plop .3s ease-out;}
+
+  @media (prefers-reduced-motion: reduce){
+    .cell-btn.done.igniting, .cell-btn.fail.plopping{animation:none;}
+    .cell-btn.done.igniting::before{display:none;}
+  }
+
+  /* ---------- Actions ---------- */
+  .actions{display:flex; gap:10px; margin-top:26px; flex-wrap:wrap;}
+  .btn{
+    flex:1; min-width:150px; padding:14px 16px; border-radius:12px; font-weight:800;
+    font-size:14px; text-transform:uppercase; letter-spacing:.04em; cursor:pointer;
+    border:none; font-family:inherit;
+  }
+  .btn-primary{background:linear-gradient(135deg, var(--fire-1), var(--fire-3)); color:#fff;}
+  .btn-secondary{background:var(--panel); color:var(--text); border:1px solid var(--line);}
+  .btn:active{transform:scale(0.98);}
+  .hint{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5;}
+
+  .empty-state{
+    text-align:center; padding:40px 20px; color:var(--muted); font-size:14px;
+    border:1px dashed var(--line); border-radius:14px; background:var(--panel);
+  }
+
+  /* ---------- Modal / Podium / Identity ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,7,5,0.82); backdrop-filter: blur(3px);
+    display:flex; align-items:flex-end; justify-content:center; z-index:50;
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+  .sheet{
+    width:100%; max-width:640px; background:var(--panel); border-radius:22px 22px 0 0;
+    padding:28px 22px 30px; border-top:1px solid var(--line);
+    animation: slideUp .32s cubic-bezier(.22,1,.36,1);
+    max-height:88vh; overflow-y:auto;
+  }
+  @keyframes slideUp{from{transform:translateY(40px); opacity:0} to{transform:translateY(0); opacity:1}}
+  .sheet h2{
+    font-family:'Anton', sans-serif; font-weight:400; font-size:28px; text-align:center;
+    margin:0 0 4px; color:var(--fire-2);
+  }
+  .sheet .sheet-sub{text-align:center; color:var(--muted); font-size:13px; margin-bottom:22px;}
+
+  .podium-card{
+    border-radius:16px; padding:18px; margin-bottom:14px; border:1px solid var(--line);
+  }
+  .podium-card.winner{
+    background: linear-gradient(135deg, rgba(255,107,26,0.16), rgba(232,67,43,0.08));
+    border-color: rgba(255,182,39,0.4);
+  }
+  .podium-card.loser{
+    background: linear-gradient(135deg, rgba(124,149,153,0.14), rgba(35,43,45,0.3));
+    border-color: rgba(124,149,153,0.35);
+  }
+  .podium-icon{font-size:34px; text-align:center; margin-bottom:6px; display:flex; justify-content:center;}
+  .portage-icon{color:var(--fire-2);}
+  .podium-title{
+    font-family:'Anton', sans-serif; font-size:19px; text-align:center; letter-spacing:.02em;
+    margin-bottom:4px;
+  }
+  .podium-card.winner .podium-title{color:var(--fire-2);}
+  .podium-card.loser .podium-title{color:var(--yog);}
+  .podium-title-row{
+    display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:4px;
+  }
+  .ref-block{
+    display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;
+  }
+  .ref-pill{
+    display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--line); padding:6px 12px 6px 6px; border-radius:100px;
+    font-size:12.5px; font-weight:700; transition: border-color .15s ease, transform .1s ease;
+  }
+  .ref-pill:active{transform:scale(0.96);}
+  .ref-pill .ext{color:var(--muted); font-weight:700;}
+  .ref-pill.yt-pill{border-color:rgba(255,0,0,0.35);}
+  .ref-pill.fb-pill{border-color:rgba(24,119,242,0.4);}
+  .hist-ref{
+    display:inline-flex; align-items:center; gap:5px; text-decoration:none; color:var(--muted);
+    margin-left:8px; vertical-align:middle; font-size:11px; font-weight:700;
+    border:1px solid var(--line); padding:2px 8px 2px 3px; border-radius:100px;
+  }
+  .hist-ref .logo-btn{width:18px; height:18px;}
+  .hist-ref .logo-btn.yt::after{border-top-width:4px; border-bottom-width:4px; border-left-width:6px; margin-left:1px;}
+  .hist-ref .logo-btn.fb{font-size:12px;}
+  .logo-btn{
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; position:relative; box-shadow:0 2px 6px rgba(0,0,0,0.35);
+  }
+  .logo-btn.yt{ background:#FF0000; }
+  .logo-btn.yt::after{
+    content:''; width:0; height:0;
+    border-top:5px solid transparent; border-bottom:5px solid transparent;
+    border-left:8px solid #fff; margin-left:2px;
+  }
+  .logo-btn.fb{ background:#1877F2; color:#fff; font-family:Georgia, 'Times New Roman', serif;
+    font-weight:700; font-style:italic; font-size:16px; line-height:1; }
+  .logo-btn:active{transform:scale(0.9);}
+  .podium-names{text-align:center; font-weight:700; font-size:16px;}
+  .podium-note{text-align:center; font-size:12px; color:var(--muted); margin-top:6px;}
+
+  .close-x{
+    position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px;
+  }
+  .sheet-wrap{position:relative;}
+
+  .id-option{
+    width:100%; text-align:left; padding:14px 16px; border-radius:12px; border:1.5px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-size:15px; font-weight:700; margin-bottom:8px;
+    cursor:pointer; font-family:inherit;
+  }
+  .id-option:active{transform:scale(0.98);}
+  .id-divider{text-align:center; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin:16px 0 10px;}
+
+  /* ---------- History ---------- */
+  .history-item{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px; margin-bottom:8px; font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .history-item .hd{color:var(--muted); font-size:11px;}
+  .loading{text-align:center; color:var(--muted); padding:40px; font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <div class="loading" id="loading">Loading the challenge…</div>
+</div>
+
+<script>
+(function(){
+  const DAYS = 7;
+  const STORAGE_KEY = 'pushup-challenge-state';
+  const REF_WINNER = 'https://youtube.com/shorts/KHrtXxjoOrI?is=xFt1aZdhvxr0ruNL';
+  const REF_LOSER = 'https://www.facebook.com/share/v/17zK7kg3tw/?mibextid=wwXIfr';
+  const ME_KEY = 'pushup-my-identity';
+  const TIME_KEY = 'pushup-reminder-time';
+  let state = null;
+  let myId = null;
+  let reminderTime = '20:00';
+
+  function defaultState(){
+    return {
+      friends: [],
+      challenge: null, // { dates: ['2026-08-23', ...], dayLogs: {friendId: [null|'done'|'fail', ...]}, finished: bool }
+      history: []
+    };
+  }
+
+  function uid(){ return 'f' + Math.random().toString(36).slice(2,9); }
+  function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function todayISO(){
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function addDaysISO(iso, n){
+    const d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function dayLabel(iso){
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', {weekday:'short'}) + ' ' + d.getDate();
+  }
+
+  async function loadState(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      state = res && res.value ? JSON.parse(res.value) : defaultState();
+    }catch(e){ state = defaultState(); }
+  }
+  async function saveState(){
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), true); }
+    catch(e){ console.error('Storage error', e); }
+  }
+  async function loadIdentity(){
+    try{
+      const res = await window.storage.get(ME_KEY, false);
+      myId = res && res.value ? res.value : null;
+    }catch(e){ myId = null; }
+  }
+  async function saveIdentity(id){
+    myId = id;
+    try{ await window.storage.set(ME_KEY, id, false); }
+    catch(e){ console.error('Storage error', e); }
+  }
+  async function loadReminderTime(){
+    try{
+      const res = await window.storage.get(TIME_KEY, false);
+      reminderTime = res && res.value ? res.value : '20:00';
+    }catch(e){ reminderTime = '20:00'; }
+  }
+  async function saveReminderTime(t){
+    reminderTime = t;
+    try{ await window.storage.set(TIME_KEY, t, false); }
+    catch(e){ console.error('Storage error', e); }
+  }
+
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function icsDate(iso, hh, mm){
+    return iso.replace(/-/g,'') + 'T' + pad2(hh) + pad2(mm) + '00';
+  }
+  function downloadICS(name, dates, hhmm){
+    const [hh, mm] = hhmm.split(':').map(Number);
+    const start = dates[0];
+    const dtStart = icsDate(start, hh, mm);
+    const dtEnd = icsDate(start, hh, (mm+15)%60);
+    const uidStr = 'pushup-' + name.replace(/\s+/g,'') + '-' + start + '@challenge';
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//PushupChallenge//EN',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      'UID:' + uidStr,
+      'DTSTAMP:' + icsDate(todayISO(), 0, 0) + 'Z',
+      'DTSTART:' + dtStart,
+      'DTEND:' + dtEnd,
+      'RRULE:FREQ=DAILY;COUNT=' + dates.length,
+      'SUMMARY:🔥 100 push-ups — ' + name,
+      "DESCRIPTION:Did you do your 100 push-ups today? Go check it off on the challenge site.",
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:Push-up reminder',
+      'TRIGGER:PT0M',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+    const ics = lines.join('\r\n');
+    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    const a = document.createElement('a');
+    a.href = dataUri;
+    a.download = 'pushup-reminder-' + name.replace(/\s+/g,'-').toLowerCase() + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function startChallenge(){
+    const start = todayISO();
+    const dates = Array.from({length:DAYS}).map((_,i) => addDaysISO(start, i));
+    const dayLogs = {};
+    state.friends.forEach(f => dayLogs[f.id] = new Array(DAYS).fill(null));
+    state.challenge = { dates, dayLogs, finished:false };
+    saveState(); render();
+  }
+
+  function ensureFriendInChallenge(id){
+    if(state.challenge && !state.challenge.dayLogs[id]){
+      state.challenge.dayLogs[id] = new Array(DAYS).fill(null);
+    }
+  }
+
+  async function addFriend(name, andBecomeMe){
+    name = name.trim();
+    if(!name) return null;
+    const f = {id: uid(), name};
+    state.friends.push(f);
+    if(state.challenge) ensureFriendInChallenge(f.id);
+    await saveState();
+    if(andBecomeMe) await saveIdentity(f.id);
+    render();
+    return f.id;
+  }
+
+  function removeFriend(id){
+    state.friends = state.friends.filter(f => f.id !== id);
+    if(state.challenge && state.challenge.dayLogs[id]) delete state.challenge.dayLogs[id];
+    if(myId === id){ myId = null; saveIdentity(''); }
+    saveState(); render();
+  }
+
+  function setCell(friendId, dayIdx, value, btnEl){
+    const log = state.challenge.dayLogs[friendId];
+    const cur = log[dayIdx];
+    const next = (cur === value) ? null : value;
+    log[dayIdx] = next;
+    saveState();
+    if(btnEl){
+      btnEl.classList.remove('igniting','plopping');
+      void btnEl.offsetWidth;
+      if(next === 'done') btnEl.classList.add('igniting');
+      if(next === 'fail') btnEl.classList.add('plopping');
+    }
+    setTimeout(render, next === 'done' ? 420 : 0);
+  }
+
+  function cycleCell(friendId, dayIdx, btnEl){
+    const log = state.challenge.dayLogs[friendId];
+    const cur = log[dayIdx];
+    const next = cur === null ? 'done' : (cur === 'done' ? 'fail' : null);
+    setCell(friendId, dayIdx, next === null ? '__none__' : next, btnEl);
+    // setCell toggles off if same value; handle direct assignment instead:
+    log[dayIdx] = next;
+    saveState();
+  }
+
+  function computeResults(){
+    const totals = state.friends.map(f => {
+      const log = (state.challenge.dayLogs[f.id] || []);
+      const done = log.filter(v => v === 'done').length;
+      return {id: f.id, name: f.name, done};
+    });
+    if(totals.length === 0) return {winners:[], losers:[]};
+    const max = Math.max(...totals.map(t => t.done));
+    const min = Math.min(...totals.map(t => t.done));
+    const winners = totals.filter(t => t.done === max);
+    const losers = totals.filter(t => t.done === min && !(max === min));
+    return {winners, losers, totals};
+  }
+
+  function finishChallenge(){
+    const results = computeResults();
+    state.challenge.finished = true;
+    state.history.unshift({
+      startLabel: dayLabel(state.challenge.dates[0]),
+      endLabel: dayLabel(state.challenge.dates[DAYS-1]),
+      friends: state.friends.map(f => f.name),
+      results
+    });
+    saveState(); render(true);
+  }
+
+  function newChallenge(){
+    state.challenge = null;
+    saveState(); render();
+    startChallenge();
+  }
+
+  function todayIndex(){
+    if(!state.challenge) return -1;
+    return state.challenge.dates.indexOf(todayISO());
+  }
+
+  function openIdentityPicker(forced){
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `
+      <div class="sheet-wrap" style="width:100%; max-width:640px;">
+        <div class="sheet">
+          ${forced ? '' : '<div class="close-x" id="close-id">✕</div>'}
+          <h2>Who are you?</h2>
+          <div class="sheet-sub">This choice stays in this browser — it doesn't change anything for others.</div>
+          <div id="id-list">
+            ${state.friends.map(f => `<button class="id-option" data-pick="${f.id}">${esc(f.name)}</button>`).join('')}
+          </div>
+          <div class="id-divider">Not on the list?</div>
+          <div class="add-row">
+            <input id="id-new-name" type="text" placeholder="Your first name…" maxlength="24" />
+            <button id="id-new-btn">Add</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const closeBtn = overlay.querySelector('#close-id');
+    if(closeBtn) closeBtn.onclick = () => overlay.remove();
+    overlay.querySelectorAll('[data-pick]').forEach(el => {
+      el.onclick = async () => { await saveIdentity(el.getAttribute('data-pick')); overlay.remove(); render(); };
+    });
+    overlay.querySelector('#id-new-btn').onclick = async () => {
+      const input = overlay.querySelector('#id-new-name');
+      const id = await addFriend(input.value, true);
+      if(id){ overlay.remove(); render(); }
+    };
+  }
+
+  function buildExportText(){
+    const now = new Date();
+    const lines = [];
+    lines.push('100 PUSH-UP CHALLENGE — EXPORT');
+    lines.push('Generated on ' + now.toLocaleDateString('en-US') + ' at ' + now.toLocaleTimeString('en-US'));
+    lines.push('='.repeat(40));
+    lines.push('');
+
+    if(state.challenge){
+      lines.push('CURRENT CHALLENGE');
+      lines.push('From ' + dayLabel(state.challenge.dates[0]) + ' to ' + dayLabel(state.challenge.dates[DAYS-1]));
+      lines.push(state.challenge.finished ? '(finished)' : '(in progress)');
+      lines.push('-'.repeat(40));
+      state.friends.forEach(f => {
+        const log = state.challenge.dayLogs[f.id] || [];
+        const marks = log.map(v => v === 'done' ? '🛶' : v === 'fail' ? '🥣' : '·').join(' ');
+        const doneCount = log.filter(v => v === 'done').length;
+        lines.push(f.name.padEnd(18) + marks + '   (' + doneCount + '/' + DAYS + ')');
+      });
+      lines.push('');
+    }
+
+    if(state.history.length){
+      lines.push('CHALLENGE HISTORY');
+      lines.push('-'.repeat(40));
+      state.history.forEach((h, i) => {
+        const w = h.results.winners.map(x=>x.name + ' (' + x.done + '/' + DAYS + ')').join(', ');
+        const l = h.results.losers && h.results.losers.length ? h.results.losers.map(x=>x.name + ' (' + x.done + '/' + DAYS + ')').join(', ') : null;
+        lines.push((i+1) + '. ' + h.startLabel + ' → ' + h.endLabel);
+        lines.push('   Participants: ' + h.friends.join(', '));
+        lines.push("   🚣 Who's Gonna Carry the Boats : " + w);
+        if(l) lines.push('   🥣 Mangeux de Yogourt : ' + l);
+        lines.push('');
+      });
+    }
+
+    if(!state.challenge && !state.history.length){
+      lines.push('No data yet.');
+      lines.push('');
+    }
+
+    lines.push('='.repeat(40));
+    lines.push('REFERENCES');
+    lines.push('Who\'s Gonna Carry the Boats: ' + REF_WINNER);
+    lines.push('Mangeux de Yogourt: ' + REF_LOSER);
+    lines.push('');
+    lines.push('='.repeat(40));
+    lines.push('RAW DATA (for future re-import)');
+    lines.push(JSON.stringify(state));
+    return lines.join('\n');
+  }
+
+  function exportAll(){
+    const text = buildExportText();
+    const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+    const a = document.createElement('a');
+    a.href = dataUri;
+    const now = new Date();
+    a.download = 'pushup-challenge-export-' + now.toISOString().slice(0,10) + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function boatIcon(px, color){
+    const c = color || 'currentColor';
+    return `<svg viewBox="0 0 64 64" width="${px}" height="${px}" fill="none" stroke="${c}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;">
+      <path d="M4 17 Q32 4 60 17 Q32 24 4 17 Z" fill="${c}" stroke="none"/>
+      <circle cx="32" cy="29" r="5" fill="${c}" stroke="none"/>
+      <line x1="32" y1="34" x2="32" y2="48"/>
+      <line x1="32" y1="37" x2="19" y2="19"/>
+      <line x1="32" y1="37" x2="45" y2="19"/>
+      <line x1="32" y1="48" x2="21" y2="61"/>
+      <line x1="32" y1="48" x2="43" y2="61"/>
+    </svg>`;
+  }
+
+  function render(showPodium){
+    const app = document.getElementById('app');
+    const hasChallenge = !!state.challenge;
+    const finished = hasChallenge && state.challenge.finished;
+    const tIdx = todayIndex();
+    const me = myId ? state.friends.find(f => f.id === myId) : null;
+    const isLastDayOrPast = hasChallenge && todayISO() >= state.challenge.dates[DAYS-1];
+
+    let daysMarked = 0;
+    if(hasChallenge){
+      const allLogs = Object.values(state.challenge.dayLogs);
+      for(let d=0; d<DAYS; d++){
+        if(allLogs.some(l => l[d] !== null)) daysMarked = d+1;
+      }
+    }
+
+    let html = `
+      <header>
+        <div class="top-row">
+          <div>
+            <div class="eyebrow">Challenge with friends</div>
+            <h1>100 PUSH-UPS<br>A DAY</h1>
+          </div>
+          <div class="whoami" id="whoami-btn">
+            <span class="dot"></span> ${me ? esc(me.name) : 'Who are you?'}
+            <small>${me ? 'change' : ''}</small>
+          </div>
+        </div>
+        <div class="sub">7 days. You did it, or you didn't. No half measures.</div>
+        <div class="ref-block">
+          <a class="ref-pill yt-pill" href="${REF_WINNER}" target="_blank" rel="noopener"><span class="logo-btn yt"></span>Who's Gonna Carry the Boats <span class="ext">↗</span></a>
+          <a class="ref-pill fb-pill" href="${REF_LOSER}" target="_blank" rel="noopener"><span class="logo-btn fb">f</span>Mangeux de Yogourt <span class="ext">↗</span></a>
+        </div>
+        ${hasChallenge ? `<div class="day-badge"><span class="num">${daysMarked}/${DAYS}</span><span class="lbl">days logged</span></div>` : ''}
+        <div style="margin-top:12px;"><button class="export-link" id="export-btn">💾 Export data</button></div>
+      </header>
+    `;
+
+    if(hasChallenge && !finished && me && tIdx >= 0){
+      const myLog = state.challenge.dayLogs[me.id] || [];
+      const todayVal = myLog[tIdx];
+      html += `
+        <div class="quick-checkin">
+          <div class="qc-label">Today, <strong>${esc(me.name)}</strong> — 100 push-ups?</div>
+          <div class="qc-buttons">
+            <button class="qc-btn ${todayVal==='done'?'active-done':''}" id="qc-done"><span class="ico">${boatIcon(24)}</span>Done</button>
+            <button class="qc-btn ${todayVal==='fail'?'active-fail':''}" id="qc-fail"><span class="ico">🥣</span>Missed</button>
+          </div>
+          <div class="reminder-row">
+            <span class="reminder-lbl">🔔 Daily reminder at</span>
+            <input type="time" id="reminder-time" value="${reminderTime}">
+            <button class="reminder-btn" id="reminder-add">Add to calendar</button>
+          </div>
+          <div class="qc-note" style="margin-top:8px;">Downloads a recurring event (7 days) for your phone's calendar — that's what notifies you.</div>
+        </div>
+      `;
+    } else if(hasChallenge && !finished && me && tIdx < 0){
+      html += `<div class="quick-checkin qc-note" style="margin-top:0;">Today falls outside the current 7-day challenge.</div>`;
+    } else if(hasChallenge && !finished && !me){
+      html += `<div class="quick-checkin qc-note" style="margin-top:0;">Pick who you are (above) to log today's push-ups in one tap.</div>`;
+    }
+
+    html += `
+      <div class="section-title">Participants</div>
+      <div class="add-row">
+        <input id="friend-input" type="text" placeholder="A friend's name…" maxlength="24" />
+        <button id="add-btn">Add</button>
+      </div>
+      <div class="friends-list">
+        ${state.friends.length === 0 ? `<div class="hint">Add at least one friend to start the challenge.</div>` :
+          state.friends.map(f => `
+            <span class="friend-chip ${f.id===myId?'is-me':''}">${esc(f.name)}${f.id===myId ? ' · you' : ''} <button data-remove="${f.id}" title="Remove">✕</button></span>
+          `).join('')}
+      </div>
+    `;
+
+    if(!hasChallenge){
+      html += `
+        <div class="section-title">The challenge</div>
+        <div class="empty-state">No challenge running.<br>Add your friends, then start the 7 days.</div>
+        <div class="actions">
+          <button class="btn btn-primary" id="start-btn" ${state.friends.length === 0 ? 'disabled style="opacity:.4"' : ''}>🔥 Start the challenge</button>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="section-title">Tracker — 7 days</div>
+        <div class="grid-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="name-col">Friend</th>
+                ${state.challenge.dates.map((iso,i) => `<th class="day-col ${i===tIdx?'is-today':''}">${dayLabel(iso)}</th>`).join('')}
+                <th class="day-col">${boatIcon(14)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.friends.map(f => {
+                const log = state.challenge.dayLogs[f.id] || new Array(DAYS).fill(null);
+                const doneCount = log.filter(v => v === 'done').length;
+                return `<tr class="${f.id===myId?'me-row':''}">
+                  <td class="name-col">${esc(f.name)}</td>
+                  ${log.map((v, i) => `
+                    <td>
+                      <button class="cell-btn ${v==='done'?'done':''} ${v==='fail'?'fail':''} ${i===tIdx?'today-col':''}" data-cell="${f.id}|${i}">
+                        ${v === 'done' ? boatIcon(18,'#fff') : v === 'fail' ? '🥣' : ''}
+                      </button>
+                    </td>
+                  `).join('')}
+                  <td class="streak-col">${doneCount}/${DAYS}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="hint">Tap a cell: empty → 🛶 done → 🥣 missed → empty. Today's column is highlighted.</div>
+        ${finished ? `
+        <div class="actions">
+          <button class="btn btn-primary" id="new-btn">↻ New challenge</button>
+        </div>
+        ` : isLastDayOrPast ? `
+        <div class="actions">
+          <button class="btn btn-primary" id="finish-btn">🏆 Finish the challenge</button>
+        </div>
+        ` : `
+        <div class="hint" style="margin-top:14px;">Crowning happens on day 7 — come back then to finish the challenge.</div>
+        <div style="text-align:center; margin-top:10px;"><button class="export-link" id="preview-btn">🧪 Preview results (test, doesn't end the challenge)</button></div>
+        `}
+      `;
+    }
+
+    if(state.history.length){
+      html += `<div class="section-title">Past challenges</div>`;
+      html += state.history.slice(0,6).map(h => {
+        const w = h.results.winners.map(x=>x.name).join(', ') || '—';
+        const l = h.results.losers ? h.results.losers.map(x=>x.name).join(', ') : '';
+        return `<div class="history-item">
+          <div>
+            <div><strong>${esc(w)}</strong> — Who's Gonna Carry the Boats <a class="hist-ref" href="${REF_WINNER}" target="_blank" rel="noopener"><span class="logo-btn yt"></span>Watch</a></div>
+            ${l ? `<div class="hd">${esc(l)} — Mangeux de Yogourt <a class="hist-ref" href="${REF_LOSER}" target="_blank" rel="noopener"><span class="logo-btn fb">f</span>Watch</a></div>` : ''}
+          </div>
+          <div class="hd">${h.startLabel} → ${h.endLabel}</div>
+        </div>`;
+      }).join('');
+    }
+
+    app.innerHTML = html;
+    attachEvents();
+
+    if(showPodium && finished){
+      renderPodium(state.history[0].results);
+    }
+  }
+
+  function renderPodium(results, isPreview){
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    const winners = results.winners.map(w=>w.name).join(', ');
+    const losers = results.losers && results.losers.length ? results.losers.map(l=>l.name).join(', ') : null;
+    overlay.innerHTML = `
+      <div class="sheet-wrap" style="width:100%; max-width:640px;">
+        <div class="sheet">
+          <div class="close-x" id="close-podium">✕</div>
+          <h2>Challenge complete 🔥</h2>
+          <div class="sheet-sub">${isPreview ? "Test preview — nothing is saved, your real challenge keeps running." : "7 days, 100 push-ups. Here's the verdict."}</div>
+
+          <div class="podium-card winner">
+            <div class="podium-icon">
+              <svg class="portage-icon" viewBox="0 0 64 64" width="46" height="46" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 17 Q32 4 60 17 Q32 24 4 17 Z" fill="currentColor" stroke="none"/>
+                <circle cx="32" cy="29" r="5" fill="currentColor" stroke="none"/>
+                <line x1="32" y1="34" x2="32" y2="48"/>
+                <line x1="32" y1="37" x2="19" y2="19"/>
+                <line x1="32" y1="37" x2="45" y2="19"/>
+                <line x1="32" y1="48" x2="21" y2="61"/>
+                <line x1="32" y1="48" x2="43" y2="61"/>
+              </svg>
+            </div>
+            <div class="podium-title">Who's Gonna Carry the Boats</div>
+            <div style="text-align:center; margin-bottom:6px;">
+              <a class="ref-pill yt-pill" href="${REF_WINNER}" target="_blank" rel="noopener"><span class="logo-btn yt"></span>Watch <span class="ext">↗</span></a>
+            </div>
+            <div class="podium-names">${esc(winners)}</div>
+            <div class="podium-note">The most days completed.</div>
+          </div>
+
+          ${losers ? `
+          <div class="podium-card loser">
+            <div class="podium-icon">🥣</div>
+            <div class="podium-title">Mangeux de Yogourt</div>
+            <div style="text-align:center; margin-bottom:6px;">
+              <a class="ref-pill fb-pill" href="${REF_LOSER}" target="_blank" rel="noopener"><span class="logo-btn fb">f</span>Watch <span class="ext">↗</span></a>
+            </div>
+            <div class="podium-names">${esc(losers)}</div>
+            <div class="podium-note">The yogurt shame, well earned.</div>
+          </div>` : ''}
+
+          <div class="actions">
+            ${isPreview
+              ? '<button class="btn btn-secondary" id="podium-close-preview">Close preview</button>'
+              : '<button class="btn btn-primary" id="podium-new">↻ New challenge</button>'}
+          </div>
+          ${isPreview ? '' : '<div style="text-align:center; margin-top:10px;"><button class="export-link" id="podium-export">💾 Export this result</button></div>'}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#close-podium').onclick = () => overlay.remove();
+    const newBtn = overlay.querySelector('#podium-new');
+    if(newBtn) newBtn.onclick = () => { overlay.remove(); newChallenge(); };
+    const closePreviewBtn = overlay.querySelector('#podium-close-preview');
+    if(closePreviewBtn) closePreviewBtn.onclick = () => overlay.remove();
+    const exportBtn2 = overlay.querySelector('#podium-export');
+    if(exportBtn2) exportBtn2.onclick = exportAll;
+  }
+
+  function attachEvents(){
+    const addBtn = document.getElementById('add-btn');
+    const input = document.getElementById('friend-input');
+    if(addBtn) addBtn.onclick = () => { addFriend(input.value); input.value=''; input.focus(); };
+    if(input) input.onkeydown = (e) => { if(e.key === 'Enter'){ addFriend(input.value); input.value=''; } };
+
+    document.querySelectorAll('[data-remove]').forEach(el => {
+      el.onclick = () => removeFriend(el.getAttribute('data-remove'));
+    });
+
+    const startBtn = document.getElementById('start-btn');
+    if(startBtn) startBtn.onclick = startChallenge;
+    const finishBtn = document.getElementById('finish-btn');
+    if(finishBtn) finishBtn.onclick = finishChallenge;
+    const newBtn = document.getElementById('new-btn');
+    if(newBtn) newBtn.onclick = () => { if(confirm('Start a new 7-day challenge? The current tracker will be archived.')) newChallenge(); };
+
+    document.querySelectorAll('[data-cell]').forEach(el => {
+      el.onclick = () => {
+        const [fid, idx] = el.getAttribute('data-cell').split('|');
+        cycleCell(fid, parseInt(idx,10), el);
+      };
+    });
+
+    const whoami = document.getElementById('whoami-btn');
+    if(whoami) whoami.onclick = () => openIdentityPicker(false);
+
+    const exportBtn = document.getElementById('export-btn');
+    if(exportBtn) exportBtn.onclick = exportAll;
+
+    const previewBtn = document.getElementById('preview-btn');
+    if(previewBtn) previewBtn.onclick = () => renderPodium(computeResults(), true);
+
+    const qcDone = document.getElementById('qc-done');
+    const qcFail = document.getElementById('qc-fail');
+    if(qcDone) qcDone.onclick = () => {
+      const tIdx = todayIndex();
+      const btn = document.querySelector(`[data-cell="${myId}|${tIdx}"]`);
+      const log = state.challenge.dayLogs[myId];
+      log[tIdx] = (log[tIdx] === 'done') ? null : 'done';
+      saveState();
+      if(btn){ btn.classList.add('igniting'); setTimeout(render, 420); } else { render(); }
+    };
+    if(qcFail) qcFail.onclick = () => {
+      const tIdx = todayIndex();
+      const log = state.challenge.dayLogs[myId];
+      log[tIdx] = (log[tIdx] === 'fail') ? null : 'fail';
+      saveState();
+      render();
+    };
+
+    const reminderInput = document.getElementById('reminder-time');
+    if(reminderInput) reminderInput.onchange = () => saveReminderTime(reminderInput.value);
+    const reminderBtn = document.getElementById('reminder-add');
+    if(reminderBtn) reminderBtn.onclick = () => {
+      const me = state.friends.find(f => f.id === myId);
+      const t = reminderInput ? reminderInput.value : reminderTime;
+      downloadICS(me.name, state.challenge.dates, t);
+    };
+  }
+
+  async function init(){
+    await loadState();
+    await loadIdentity();
+    await loadReminderTime();
+    render();
+    // First-time / stale identity nudge, non-blocking so the group view is never locked
+    if(state.friends.length > 0 && (!myId || !state.friends.find(f => f.id === myId))){
+      openIdentityPicker(false);
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
