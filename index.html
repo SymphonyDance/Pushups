@@ -106,6 +106,12 @@
     text-decoration:underline; cursor:pointer; font-family:inherit; padding:0;
   }
   .export-link:hover{color:var(--fire-2);}
+  .whoami-banner{
+    background:linear-gradient(135deg, rgba(255,107,26,0.16), rgba(232,67,43,0.10));
+    border:1.5px solid rgba(255,182,39,0.5); border-radius:14px; padding:14px 16px;
+    font-size:13px; font-weight:600; margin-bottom:16px; cursor:pointer; color:var(--text);
+  }
+  .whoami-banner strong{color:var(--fire-2);}
 
   /* ---------- Add friend ---------- */
   .add-row{display:flex; gap:8px; margin-bottom:14px;}
@@ -162,6 +168,10 @@
     transition: transform .12s ease, border-color .12s ease, background .12s ease;
   }
   .cell-btn.today-col{border-color:rgba(255,182,39,0.5);}
+  .cell-btn.unlogged-past{border-color:rgba(232,67,43,0.55); background:rgba(232,67,43,0.06);}
+  .cell-btn.unlogged-past::after{
+    content:'?'; color:rgba(232,67,43,0.75); font-size:13px; font-weight:800;
+  }
   .cell-btn.done{
     border:1.5px solid transparent;
     background: radial-gradient(circle at 50% 120%, var(--fire-2), var(--fire-1) 55%, var(--fire-3) 100%);
@@ -325,7 +335,19 @@
   <div class="loading" id="loading">Loading the challenge…</div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB-p3Ruta10fkYOBcNpiiPrttJTWsUMGp8",
+  authDomain: "pushup-challenge-76699.firebaseapp.com",
+  projectId: "pushup-challenge-76699",
+  storageBucket: "pushup-challenge-76699.firebasestorage.app",
+  messagingSenderId: "833638713825",
+  appId: "1:833638713825:web:d7f96ed865dc5d4927eaa0"
+};
+
 (function(){
   const DAYS = 7;
   const STORAGE_KEY = 'pushup-challenge-state';
@@ -361,36 +383,93 @@
     return d.toLocaleDateString('en-US', {weekday:'short'}) + ' ' + d.getDate();
   }
 
+  const hasClaudeStorage = (typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function');
+
+  let db = null;
+  if(!hasClaudeStorage){
+    try{
+      const fbApp = initializeApp(firebaseConfig);
+      db = getFirestore(fbApp);
+    }catch(e){ console.error('Firebase init failed', e); db = null; }
+  }
+
+  const storageAPI = {
+    async get(key, shared){
+      if(hasClaudeStorage){
+        try{ return await window.storage.get(key, shared); }
+        catch(e){ return null; }
+      }
+      if(shared && db){
+        try{
+          const snap = await getDoc(doc(db, 'pushup', key));
+          return snap.exists() ? {key, value: snap.data().value, shared} : null;
+        }catch(e){ console.error('Firestore get error', e); return null; }
+      }
+      try{
+        const raw = localStorage.getItem('pushup:' + key);
+        return raw !== null ? {key, value: raw, shared} : null;
+      }catch(e){ return null; }
+    },
+    async set(key, value, shared){
+      if(hasClaudeStorage){
+        try{ return await window.storage.set(key, value, shared); }
+        catch(e){ return null; }
+      }
+      if(shared && db){
+        try{
+          await setDoc(doc(db, 'pushup', key), {value, updatedAt: Date.now()});
+          return {key, value, shared};
+        }catch(e){ console.error('Firestore set error', e); return null; }
+      }
+      try{ localStorage.setItem('pushup:' + key, value); return {key, value, shared}; }
+      catch(e){ return null; }
+    }
+  };
+
+  function subscribeToSharedState(){
+    if(hasClaudeStorage || !db) return;
+    try{
+      onSnapshot(doc(db, 'pushup', STORAGE_KEY), (snap) => {
+        if(!snap.exists()) return;
+        const incoming = snap.data().value;
+        if(incoming && incoming !== JSON.stringify(state)){
+          state = JSON.parse(incoming);
+          render();
+        }
+      }, (err) => console.error('Firestore listen error', err));
+    }catch(e){ console.error('Firestore subscribe failed', e); }
+  }
+
   async function loadState(){
     try{
-      const res = await window.storage.get(STORAGE_KEY, true);
+      const res = await storageAPI.get(STORAGE_KEY, true);
       state = res && res.value ? JSON.parse(res.value) : defaultState();
     }catch(e){ state = defaultState(); }
   }
   async function saveState(){
-    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), true); }
+    try{ await storageAPI.set(STORAGE_KEY, JSON.stringify(state), true); }
     catch(e){ console.error('Storage error', e); }
   }
   async function loadIdentity(){
     try{
-      const res = await window.storage.get(ME_KEY, false);
+      const res = await storageAPI.get(ME_KEY, false);
       myId = res && res.value ? res.value : null;
     }catch(e){ myId = null; }
   }
   async function saveIdentity(id){
     myId = id;
-    try{ await window.storage.set(ME_KEY, id, false); }
+    try{ await storageAPI.set(ME_KEY, id, false); }
     catch(e){ console.error('Storage error', e); }
   }
   async function loadReminderTime(){
     try{
-      const res = await window.storage.get(TIME_KEY, false);
+      const res = await storageAPI.get(TIME_KEY, false);
       reminderTime = res && res.value ? res.value : '20:00';
     }catch(e){ reminderTime = '20:00'; }
   }
   async function saveReminderTime(t){
     reminderTime = t;
-    try{ await window.storage.set(TIME_KEY, t, false); }
+    try{ await storageAPI.set(TIME_KEY, t, false); }
     catch(e){ console.error('Storage error', e); }
   }
 
@@ -426,13 +505,22 @@
       'END:VCALENDAR'
     ];
     const ics = lines.join('\r\n');
-    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
-    const a = document.createElement('a');
-    a.href = dataUri;
-    a.download = 'pushup-reminder-' + name.replace(/\s+/g,'-').toLowerCase() + '.ics';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS){
+      // iOS Safari ignores the download attribute for calendar files; a direct
+      // navigation lets it recognize the mime type and offer "Add to Calendar".
+      window.location.href = url;
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pushup-reminder-' + name.replace(/\s+/g,'-').toLowerCase() + '.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 
   function startChallenge(){
@@ -618,26 +706,28 @@
 
   function exportAll(){
     const text = buildExportText();
-    const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = dataUri;
+    a.href = url;
     const now = new Date();
     a.download = 'pushup-challenge-export-' + now.toISOString().slice(0,10) + '.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 
   function boatIcon(px, color){
     const c = color || 'currentColor';
-    return `<svg viewBox="0 0 64 64" width="${px}" height="${px}" fill="none" stroke="${c}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;">
-      <path d="M4 17 Q32 4 60 17 Q32 24 4 17 Z" fill="${c}" stroke="none"/>
+    return `<svg viewBox="0 0 64 64" width="${px}" height="${px}" fill="none" stroke="${c}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;">
+      <path d="M3 16 Q32 2 61 16 Q32 25 3 16 Z" fill="${c}" stroke="none"/>
       <circle cx="32" cy="29" r="5" fill="${c}" stroke="none"/>
-      <line x1="32" y1="34" x2="32" y2="48"/>
-      <line x1="32" y1="37" x2="19" y2="19"/>
-      <line x1="32" y1="37" x2="45" y2="19"/>
-      <line x1="32" y1="48" x2="21" y2="61"/>
-      <line x1="32" y1="48" x2="43" y2="61"/>
+      <line x1="32" y1="34" x2="32" y2="47"/>
+      <polyline points="32,38 22,33 18,19" fill="none"/>
+      <polyline points="32,38 42,33 46,19" fill="none"/>
+      <polyline points="32,47 23,53 19,62" fill="none"/>
+      <polyline points="32,47 42,52 47,61" fill="none"/>
     </svg>`;
   }
 
@@ -648,6 +738,7 @@
     const tIdx = todayIndex();
     const me = myId ? state.friends.find(f => f.id === myId) : null;
     const isLastDayOrPast = hasChallenge && todayISO() >= state.challenge.dates[DAYS-1];
+    const pastCutoffIdx = hasChallenge ? (tIdx >= 0 ? tIdx : (isLastDayOrPast ? DAYS : 0)) : 0;
 
     let daysMarked = 0;
     if(hasChallenge){
@@ -703,6 +794,14 @@
       html += `<div class="quick-checkin qc-note" style="margin-top:0;">Pick who you are (above) to log today's push-ups in one tap.</div>`;
     }
 
+    if(!me && state.friends.length > 0){
+      html += `
+        <div class="whoami-banner" id="whoami-banner">
+          👆 Tap here to tell us which name is <strong>you</strong> — that unlocks your one-tap daily check-in.
+        </div>
+      `;
+    }
+
     html += `
       <div class="section-title">Participants</div>
       <div class="add-row">
@@ -745,7 +844,7 @@
                   <td class="name-col">${esc(f.name)}</td>
                   ${log.map((v, i) => `
                     <td>
-                      <button class="cell-btn ${v==='done'?'done':''} ${v==='fail'?'fail':''} ${i===tIdx?'today-col':''}" data-cell="${f.id}|${i}">
+                      <button class="cell-btn ${v==='done'?'done':''} ${v==='fail'?'fail':''} ${i===tIdx?'today-col':''} ${v===null && i<pastCutoffIdx?'unlogged-past':''}" data-cell="${f.id}|${i}">
                         ${v === 'done' ? boatIcon(18,'#fff') : v === 'fail' ? '🥣' : ''}
                       </button>
                     </td>
@@ -756,7 +855,7 @@
             </tbody>
           </table>
         </div>
-        <div class="hint">Tap a cell: empty → 🛶 done → 🥣 missed → empty. Today's column is highlighted.</div>
+        <div class="hint">Empty is <strong>not</strong> auto-marked as missed — you must tap it. Cycle: empty → 🛶 done → 🥣 missed → empty. A red "?" flags a past day you haven't logged yet; you can still tap it any time before you finish the challenge.</div>
         ${finished ? `
         <div class="actions">
           <button class="btn btn-primary" id="new-btn">↻ New challenge</button>
@@ -808,17 +907,7 @@
           <div class="sheet-sub">${isPreview ? "Test preview — nothing is saved, your real challenge keeps running." : "7 days, 100 push-ups. Here's the verdict."}</div>
 
           <div class="podium-card winner">
-            <div class="podium-icon">
-              <svg class="portage-icon" viewBox="0 0 64 64" width="46" height="46" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 17 Q32 4 60 17 Q32 24 4 17 Z" fill="currentColor" stroke="none"/>
-                <circle cx="32" cy="29" r="5" fill="currentColor" stroke="none"/>
-                <line x1="32" y1="34" x2="32" y2="48"/>
-                <line x1="32" y1="37" x2="19" y2="19"/>
-                <line x1="32" y1="37" x2="45" y2="19"/>
-                <line x1="32" y1="48" x2="21" y2="61"/>
-                <line x1="32" y1="48" x2="43" y2="61"/>
-              </svg>
-            </div>
+            <div class="podium-icon portage-icon">${boatIcon(46)}</div>
             <div class="podium-title">Who's Gonna Carry the Boats</div>
             <div style="text-align:center; margin-bottom:6px;">
               <a class="ref-pill yt-pill" href="${REF_WINNER}" target="_blank" rel="noopener"><span class="logo-btn yt"></span>Watch <span class="ext">↗</span></a>
@@ -860,7 +949,15 @@
   function attachEvents(){
     const addBtn = document.getElementById('add-btn');
     const input = document.getElementById('friend-input');
-    if(addBtn) addBtn.onclick = () => { addFriend(input.value); input.value=''; input.focus(); };
+    if(addBtn) addBtn.onclick = () => {
+      const wasEmpty = state.friends.length === 0;
+      const noIdYet = !myId;
+      addFriend(input.value);
+      input.value=''; input.focus();
+      if(wasEmpty && noIdYet){
+        setTimeout(() => openIdentityPicker(false), 250);
+      }
+    };
     if(input) input.onkeydown = (e) => { if(e.key === 'Enter'){ addFriend(input.value); input.value=''; } };
 
     document.querySelectorAll('[data-remove]').forEach(el => {
@@ -883,6 +980,8 @@
 
     const whoami = document.getElementById('whoami-btn');
     if(whoami) whoami.onclick = () => openIdentityPicker(false);
+    const whoamiBanner = document.getElementById('whoami-banner');
+    if(whoamiBanner) whoamiBanner.onclick = () => openIdentityPicker(false);
 
     const exportBtn = document.getElementById('export-btn');
     if(exportBtn) exportBtn.onclick = exportAll;
@@ -923,6 +1022,7 @@
     await loadIdentity();
     await loadReminderTime();
     render();
+    subscribeToSharedState();
     // First-time / stale identity nudge, non-blocking so the group view is never locked
     if(state.friends.length > 0 && (!myId || !state.friends.find(f => f.id === myId))){
       openIdentityPicker(false);
