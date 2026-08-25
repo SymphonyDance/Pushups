@@ -366,7 +366,7 @@ const firebaseConfig = {
 (function(){
   "use strict";
 
-  const APP_VERSION = '1.9.0';
+  const APP_VERSION = '2.0.1';
   // Board id comes from the URL hash, so a shared link carries the group.
   // No hash = the original board, so existing installs keep their data.
   const BOARD     = (location.hash || '').replace(/^#/,'').trim() || '';
@@ -382,7 +382,7 @@ const firebaseConfig = {
   let shared = false, nameDraft = '', friendDraft = '', banner = '';
   let syncState = 'off', syncAt = 0;          // off | live | offline | error
   let reachedServer = false;   // did we ever confirm the board's real contents?
-  let updateWorker = null, checking = false;
+  let updateWorker = null, checking = false, restored = false;
 
   /* ---------- dates ---------- */
   const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -421,9 +421,14 @@ const firebaseConfig = {
           getDoc(doc(db,'pushup',STATE_KEY)),
           new Promise((_,rej)=> setTimeout(()=>rej(new Error('timeout')), 8000))
         ]);
-        syncState = 'live'; syncAt = Date.now();
-        reachedServer = true;
-        return s.exists() ? JSON.parse(s.data().value) : null;
+        // A cache-served answer is NOT proof of the board's real contents — Firestore can
+        // report "doesn't exist" from its own empty cache while offline.
+        const fromCache = !!(s.metadata && s.metadata.fromCache);
+        reachedServer = !fromCache;
+        syncState = fromCache ? 'offline' : 'live';
+        if(!fromCache) syncAt = Date.now();
+        if(!s.exists()) return null;
+        return JSON.parse(s.data().value);
       }
       catch(e){ syncState = 'offline'; reachedServer = false; return null; }
     }
@@ -452,6 +457,13 @@ const firebaseConfig = {
       if(!snap.exists()){ paintSync(); return; }
       const v = snap.data().value;
       if(v && v !== JSON.stringify(state)){
+        try{
+          const incoming = JSON.parse(v);
+          if(state && boardScore(incoming) < boardScore(state)){
+            // Someone's phone pushed an emptier board. Keep ours and put it back.
+            saveShared(); paintSync(); return;
+          }
+        }catch(e){}
         state = JSON.parse(v);
         try{ localStorage.setItem(STATE_KEY, v); }catch(e){}
         rollIfNeeded(false); render();
@@ -1119,6 +1131,17 @@ const firebaseConfig = {
   }
 
   /* ---------- boot ---------- */
+  // How much real history a board holds. Used to refuse a downgrade: if this phone's
+  // mirror is richer than what the server has, the server was clobbered — push ours back.
+  function boardScore(st){
+    if(!st || !Array.isArray(st.players)) return -1;
+    const logs = st.players.reduce((n,p)=> n + (p.log ? Object.keys(p.log).length : 0), 0);
+    const hist = Array.isArray(st.history) ? st.history.length : 0;
+    return st.players.length * 1000 + logs * 10 + hist;
+  }
+  function localMirror(){
+    try{ const raw = localStorage.getItem(STATE_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+  }
   function viewUnreachable(){
     return '<div class="sheet"><div class="pad">'
       + '<div class="label">Can\'t reach the board</div>'
@@ -1142,8 +1165,12 @@ const firebaseConfig = {
       return;
     }
     state = loaded;
-    if(!state){
-      try{ const raw = localStorage.getItem(STATE_KEY); if(raw) state = JSON.parse(raw); }catch(e){}
+    const mirror = localMirror();
+    if(!state) state = mirror;
+    else if(boardScore(mirror) > boardScore(state)){
+      // The server lost data this phone still has. Restore it rather than adopting the loss.
+      state = mirror;
+      restored = true;
     }
     if(!state) state = blank();
     if(!state.history) state.history = [];
@@ -1151,10 +1178,12 @@ const firebaseConfig = {
     if(!state.players) state.players = [];
     if(!state.weekStart) state.weekStart = mondayOf(today());
     myId = loadMe();
+    if(restored){ banner = 'Restored the board from this phone \u2014 the server had lost it.'; await saveShared(); }
     if(touchSeen()) saveShared();
     rollIfNeeded(true);
     render();
     watch();
+    if(restored) setTimeout(()=>{ banner=''; render(); }, 8000);
     setInterval(()=>{ if(rollIfNeeded(true)) render(); }, 60000);
   }
   boot();

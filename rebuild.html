@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rebuild the board</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f2f2; --text:#201e1d; --accent:#ec3013; --surface:#eae9e9;
+  --n600:#7d7979; --n700:#605d5d; --n800:#444141;
+  --divider:color-mix(in srgb,#201e1d 40%,transparent);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Archivo",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:460px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 0 40px}
+.pad{padding:0 20px}
+.label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--n700)}
+h1{font-weight:800;font-size:44px;line-height:.9;letter-spacing:-.04em;margin:14px 0 0}
+p{font-size:14px;line-height:1.55;color:var(--n800);max-width:38ch}
+.rule{height:2px;background:var(--divider);margin:24px 0}
+.card{border:2px solid var(--divider);padding:16px;margin-top:16px}
+.big{font-weight:800;font-size:26px;line-height:1;letter-spacing:-.02em}
+.prow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--divider)}
+.pname{font-weight:800;font-size:19px;flex:1;min-width:0}
+.cells{display:flex;gap:5px;width:150px;flex:none}
+.cell{flex:1;height:24px}
+.tot{font-weight:800;font-size:19px;width:34px;text-align:right;flex:none}
+.heads{display:flex;gap:5px;width:150px;margin-left:auto;padding-top:8px}
+.heads div{flex:1;text-align:center;font-size:9px;font-weight:600;color:var(--n600)}
+button{font-family:inherit;font-weight:800;border-radius:0;cursor:pointer;
+  font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.cta{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--accent);color:var(--bg);border:0;padding:20px;text-align:left;
+  font-size:20px;letter-spacing:-.01em;margin-top:24px}
+.cta:disabled{background:#bab6b6;cursor:not-allowed}
+.ok{background:var(--accent);color:var(--bg);padding:14px 20px;font-weight:600;font-size:13px;margin-top:20px}
+.warn{background:var(--text);color:var(--bg);padding:14px 20px;font-weight:600;font-size:13px;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pad">
+    <div class="label">One-time rebuild</div>
+    <h1>PUT THE<br>WEEK BACK.</h1>
+    <p style="margin-top:16px">Rebuilt from your screenshots: week 1, Mon 24 &ndash; Sun 30 Aug. Check the days below, then write it to the board. Nothing is sent until you tap.</p>
+  </div>
+  <div class="rule"></div>
+  <div class="pad" id="out">Checking the board…</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB-p3Ruta10fkYOBcNpiiPrttJTWsUMGp8",
+  authDomain: "pushup-challenge-76699.firebaseapp.com",
+  projectId: "pushup-challenge-76699",
+  storageBucket: "pushup-challenge-76699.firebasestorage.app",
+  messagingSenderId: "833638713825",
+  appId: "1:833638713825:web:d7f96ed865dc5d4927eaa0"
+};
+const STATE_KEY = 'pushup-v2-state';
+const db = getFirestore(initializeApp(firebaseConfig));
+const out = document.getElementById('out');
+const esc = s => { const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; };
+
+/* ---- the week, as read off the screenshots ---- */
+const MON = '2026-08-24', TUE = '2026-08-25';
+const WEEK_START = MON;
+// local-time timestamps, so the feed reads right on your phone
+const t = (d,h,m) => new Date(2026, 7, d, h, m).getTime();   // month 7 = August
+
+const uid = () => 'p'+Math.random().toString(36).slice(2,9);
+const dave = uid(), max = uid(), alex = uid();
+
+const state = {
+  week: 1,
+  weekStart: WEEK_START,
+  started: true,
+  lastSeen: '2026-08-26',
+  players: [
+    { id: dave, name: 'Dave', log: { [MON]:1, [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'11:38 AM' },
+    { id: max,  name: 'Max',  log: { [MON]:1, [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'1:30 PM'  },
+    { id: alex, name: 'Alex', log: {          [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'3:46 PM'  }
+  ],
+  feed: [
+    { who:'Alex', txt:'hit 100',        at: t(25,15,46) },
+    { who:'Max',  txt:'hit 100',        at: t(25,13,30) },
+    { who:'Dave', txt:'hit 100',        at: t(25,11,38) },
+    { who:'Alex', txt:'hit 100',        at: t(25, 2, 2) },
+    { who:'Max',  txt:'hit 100',        at: t(24,21,11) },
+    { who:'Dave', txt:'hit 100',        at: t(24,21,11) },
+    { who:'Dave', txt:'started week 1', at: t(24,21,11) }
+  ],
+  history: []
+};
+
+const DATES = ['2026-08-24','2026-08-25','2026-08-26','2026-08-27','2026-08-28','2026-08-29','2026-08-30'];
+const DAYH = ['M','T','W','T','F','S','S'];
+const TODAY_I = 2;
+
+function preview(){
+  let h = '<div class="card"><div class="label">What will be written</div>'
+        + '<div class="big" style="margin-top:8px">Week 1 &middot; 3 people &middot; day 3 of 7</div>';
+  state.players.forEach(p=>{
+    const cells = DATES.map((d,i)=>{
+      const on = !!p.log[d];
+      const fill = on ? 'var(--accent)' : (i<=TODAY_I ? '#d7d3d3' : 'transparent');
+      const bd = on ? '0' : '1px solid var(--divider)';
+      return '<div class="cell" style="background:'+fill+';border:'+bd+'"></div>';
+    }).join('');
+    h += '<div class="prow"><div class="pname">'+esc(p.name)+'</div>'
+      +  '<div class="cells">'+cells+'</div>'
+      +  '<div class="tot">'+Object.keys(p.log).length+'</div></div>';
+  });
+  h += '<div style="display:flex"><div class="heads">'+DAYH.map(l=>'<div>'+l+'</div>').join('')+'</div>'
+    +  '<div style="width:34px;flex:none"></div></div>';
+  return h + '</div>';
+}
+
+function score(st){
+  if(!st || !Array.isArray(st.players)) return -1;
+  return st.players.length*1000 + st.players.reduce((n,p)=>n+(p.log?Object.keys(p.log).length:0),0)*10
+       + (Array.isArray(st.history)?st.history.length:0);
+}
+
+let server = null, reached = false;
+try{
+  const snap = await getDoc(doc(db,'pushup',STATE_KEY));
+  reached = !(snap.metadata && snap.metadata.fromCache);
+  if(snap.exists()) server = JSON.parse(snap.data().value);
+}catch(e){}
+
+let h = preview();
+if(!reached){
+  h += '<div class="warn">Can\u2019t reach the board right now. Check your signal and reload \u2014 writing blind could overwrite something.</div>';
+} else if(score(server) > score(state)){
+  h += '<div class="ok">The board already holds more than this ('+score(server)+' vs '+score(state)+'). Nothing to rebuild \u2014 open the app normally.</div>';
+} else {
+  h += '<div class="warn">The board currently holds '+(server && server.players ? server.players.length : 0)
+    +  ' '+((server && server.players && server.players.length===1)?'person':'people')
+    +  '. This will replace it with the week above.</div>'
+    +  '<button class="cta" id="go">WRITE IT TO THE BOARD<span>\u2192</span></button>';
+}
+out.innerHTML = h;
+
+const go = document.getElementById('go');
+if(go) go.onclick = async ()=>{
+  go.disabled = true; go.textContent = 'Writing\u2026';
+  try{
+    await setDoc(doc(db,'pushup',STATE_KEY), {value: JSON.stringify(state), updatedAt: Date.now()});
+    try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
+    try{ localStorage.removeItem('pushup-v2-me'); }catch(e){}
+    out.innerHTML = '<div class="ok">Done. Open the app and tap \u201cI\u2019m already on the board \u2014 pick my name\u201d, '
+      + 'then choose Dave. Max and Alex do the same once, and everything lines up again.</div>';
+  }catch(e){
+    go.disabled = false; go.textContent = 'WRITE IT TO THE BOARD';
+    out.insertAdjacentHTML('beforeend','<div class="warn">Failed: '+esc(e.message)+'</div>');
+  }
+};
+</script>
+</body>
+</html>
