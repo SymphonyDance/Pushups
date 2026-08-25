@@ -366,7 +366,7 @@ const firebaseConfig = {
 (function(){
   "use strict";
 
-  const APP_VERSION = '1.8.0';
+  const APP_VERSION = '1.9.0';
   // Board id comes from the URL hash, so a shared link carries the group.
   // No hash = the original board, so existing installs keep their data.
   const BOARD     = (location.hash || '').replace(/^#/,'').trim() || '';
@@ -381,6 +381,7 @@ const firebaseConfig = {
   let undoLeft = 0, undoTimer = null, undoSnapshot = null;
   let shared = false, nameDraft = '', friendDraft = '', banner = '';
   let syncState = 'off', syncAt = 0;          // off | live | offline | error
+  let reachedServer = false;   // did we ever confirm the board's real contents?
   let updateWorker = null, checking = false;
 
   /* ---------- dates ---------- */
@@ -413,21 +414,24 @@ const firebaseConfig = {
       catch(e){ return null; }
     }
     if(db){
-      // getDoc never rejects when the network is simply unreachable — it waits. Cap it so a
-      // cold start in a dead zone falls through to the local mirror instead of hanging.
+      // CRITICAL: distinguish "no board exists" from "couldn't reach the board".
+      // Returning null for the second case makes onboarding overwrite a live board.
       try{
         const s = await Promise.race([
           getDoc(doc(db,'pushup',STATE_KEY)),
-          new Promise((_,rej)=> setTimeout(()=>rej(new Error('timeout')), 3500))
+          new Promise((_,rej)=> setTimeout(()=>rej(new Error('timeout')), 8000))
         ]);
         syncState = 'live'; syncAt = Date.now();
+        reachedServer = true;
         return s.exists() ? JSON.parse(s.data().value) : null;
       }
-      catch(e){ syncState = 'offline'; return null; }
+      catch(e){ syncState = 'offline'; reachedServer = false; return null; }
     }
     try{ const raw = localStorage.getItem(STATE_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
   }
   async function saveShared(){
+    // Never let a phone that could not read the board write over it.
+    if(db && !reachedServer){ console.warn('save blocked — board not yet loaded'); return; }
     const v = JSON.stringify(state);
     // Mirror locally always, so a cold offline launch still has the board.
     try{ localStorage.setItem(STATE_KEY, v); }catch(e){}
@@ -444,6 +448,7 @@ const firebaseConfig = {
     onSnapshot(doc(db,'pushup',STATE_KEY), snap=>{
       syncState = (snap.metadata && snap.metadata.fromCache && !navigator.onLine) ? 'offline' : 'live';
       syncAt = Date.now();
+      if(!(snap.metadata && snap.metadata.fromCache)) reachedServer = true;
       if(!snap.exists()){ paintSync(); return; }
       const v = snap.data().value;
       if(v && v !== JSON.stringify(state)){
@@ -1114,10 +1119,30 @@ const firebaseConfig = {
   }
 
   /* ---------- boot ---------- */
-  (async function(){
-    state = await loadShared();
+  function viewUnreachable(){
+    return '<div class="sheet"><div class="pad">'
+      + '<div class="label">Can\'t reach the board</div>'
+      + '<div class="hero-title" style="font-size:44px">HOLD ON.</div>'
+      + '<div class="body-copy" style="margin-top:18px">Your board is on the server and this phone couldn\'t read it. Nothing has been changed. Check your signal and try again \u2014 logging now would overwrite everyone\'s week.</div>'
+      + '</div><div class="spacer"></div>'
+      + '<button class="cta" id="u-retry">TRY AGAIN<span class="arrow">\u2192</span></button></div>';
+  }
+
+  async function boot(){
+    const loaded = await loadShared();
+    if(!loaded && db && !reachedServer){
+      // Could not read the board. Do NOT fall through to onboarding — that path writes.
+      const app = document.getElementById('app');
+      app.innerHTML = viewUnreachable();
+      document.getElementById('u-retry').onclick = ()=>{
+        app.innerHTML = '<div class="boot">Loading\u2026</div>';
+        boot();
+      };
+      watch();   // if the connection recovers, the snapshot adopts the real board
+      return;
+    }
+    state = loaded;
     if(!state){
-      // Offline cold start: fall back to the local mirror before giving up.
       try{ const raw = localStorage.getItem(STATE_KEY); if(raw) state = JSON.parse(raw); }catch(e){}
     }
     if(!state) state = blank();
@@ -1130,9 +1155,9 @@ const firebaseConfig = {
     rollIfNeeded(true);
     render();
     watch();
-    // re-check the week boundary if the tab stays open overnight
     setInterval(()=>{ if(rollIfNeeded(true)) render(); }, 60000);
-  })();
+  }
+  boot();
 
 })();
 </script>

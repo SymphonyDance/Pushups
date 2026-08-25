@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Restore the board</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f2f2; --text:#201e1d; --accent:#ec3013; --accent-700:#ae1800;
+  --surface:#eae9e9; --n600:#7d7979; --n700:#605d5d; --n800:#444141;
+  --divider:color-mix(in srgb,#201e1d 40%,transparent);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:"Archivo",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55;
+}
+.wrap{max-width:460px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 0 40px}
+.pad{padding:0 20px}
+.label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--n700)}
+h1{font-weight:800;font-size:44px;line-height:.9;letter-spacing:-.04em;margin:14px 0 0}
+p{font-size:14px;line-height:1.55;color:var(--n800);max-width:38ch}
+.rule{height:2px;background:var(--divider);margin:24px 0}
+.card{border:2px solid var(--divider);padding:16px;margin-top:16px}
+.big{font-weight:800;font-size:30px;line-height:1;letter-spacing:-.02em}
+.row{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--divider)}
+.row .n{font-weight:800;font-size:17px;flex:1;min-width:0}
+.row .v{font-weight:800;font-size:17px}
+button{
+  font-family:inherit;font-weight:800;border-radius:0;cursor:pointer;
+  font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+}
+.cta{
+  display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--accent);color:var(--bg);border:0;padding:20px;text-align:left;
+  font-size:20px;letter-spacing:-.01em;margin-top:24px;
+}
+.cta:disabled{background:#bab6b6;cursor:not-allowed}
+.ghost{background:transparent;border:2px solid var(--text);color:var(--text);padding:13px 16px;margin-top:12px;width:100%;text-align:left}
+.ok{background:var(--accent);color:var(--bg);padding:14px 20px;font-weight:600;font-size:13px;margin-top:20px}
+.warn{background:var(--text);color:var(--bg);padding:14px 20px;font-weight:600;font-size:13px;margin-top:20px}
+pre{
+  background:var(--surface);border:1px solid var(--divider);padding:12px;
+  font-size:10px;line-height:1.4;overflow:auto;max-height:180px;white-space:pre-wrap;word-break:break-all;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pad">
+    <div class="label">Recovery tool</div>
+    <h1>RESTORE<br>THE BOARD.</h1>
+    <p style="margin-top:16px">This page only reads what is already saved on this phone. It changes nothing until you tap the red button.</p>
+  </div>
+  <div class="rule"></div>
+  <div class="pad" id="out">Checking this phone…</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB-p3Ruta10fkYOBcNpiiPrttJTWsUMGp8",
+  authDomain: "pushup-challenge-76699.firebaseapp.com",
+  projectId: "pushup-challenge-76699",
+  storageBucket: "pushup-challenge-76699.firebasestorage.app",
+  messagingSenderId: "833638713825",
+  appId: "1:833638713825:web:d7f96ed865dc5d4927eaa0"
+};
+const STATE_KEY = 'pushup-v2-state';
+const db = getFirestore(initializeApp(firebaseConfig));
+const out = document.getElementById('out');
+const esc = s => { const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; };
+
+function score(st){
+  if(!st || !Array.isArray(st.players)) return -1;
+  const logs = st.players.reduce((n,p)=> n + (p.log ? Object.keys(p.log).length : 0), 0);
+  return st.players.length * 1000 + logs;   // more people + more logged days = more valuable
+}
+function summarise(st, title){
+  if(!st) return '<div class="card"><div class="label">'+title+'</div><div class="big" style="margin-top:8px">Nothing</div></div>';
+  const logs = (st.players||[]).reduce((n,p)=> n + (p.log?Object.keys(p.log).length:0), 0);
+  let h = '<div class="card"><div class="label">'+title+'</div>'
+        + '<div class="big" style="margin-top:8px">Week '+esc(st.week)+' · '+(st.players||[]).length+' '+((st.players||[]).length===1?'person':'people')+'</div>'
+        + '<div style="font-size:12px;color:var(--n700);margin-top:4px">'+logs+' logged days · '+((st.history||[]).length)+' past weeks · starts '+esc(st.weekStart)+'</div>';
+  (st.players||[]).forEach(p=>{
+    h += '<div class="row"><div class="n">'+esc(p.name)+'</div><div class="v">'+(p.log?Object.keys(p.log).length:0)+'</div></div>';
+  });
+  return h + '</div>';
+}
+
+let localState = null, serverState = null;
+try{ const raw = localStorage.getItem(STATE_KEY); if(raw) localState = JSON.parse(raw); }catch(e){}
+try{
+  const snap = await getDoc(doc(db,'pushup',STATE_KEY));
+  if(snap.exists()) serverState = JSON.parse(snap.data().value);
+}catch(e){ /* offline */ }
+
+const ls = score(localState), ss = score(serverState);
+let h = summarise(localState, 'Saved on this phone') + summarise(serverState, 'On the server right now');
+
+if(ls <= 0 && ss <= 0){
+  h += '<div class="warn">No board found in either place. Try this page on another phone in the group — one of them still has a copy.</div>';
+} else if(ls <= ss){
+  h += '<div class="ok">The server already has the better copy ('+ss+' vs '+ls+'). Nothing to restore from this phone — open the app normally.</div>';
+} else {
+  h += '<div class="warn">This phone has the better copy. Restoring will replace the server board with it.</div>'
+    +  '<button class="cta" id="go">RESTORE THIS BOARD<span>→</span></button>'
+    +  '<button class="ghost" id="copy">Copy the data as a backup first</button>'
+    +  '<pre id="dump" style="display:none"></pre>';
+}
+out.innerHTML = h;
+
+const go = document.getElementById('go');
+if(go) go.onclick = async ()=>{
+  go.disabled = true; go.textContent = 'Restoring…';
+  try{
+    await setDoc(doc(db,'pushup',STATE_KEY), {value: JSON.stringify(localState), updatedAt: Date.now()});
+    out.innerHTML = '<div class="ok">Restored. Open the app — everyone should see the board again. '
+      + 'Tell the others to close and reopen it.</div>';
+  }catch(e){
+    go.disabled = false; go.textContent = 'RESTORE THIS BOARD';
+    out.insertAdjacentHTML('beforeend', '<div class="warn">Failed: '+esc(e.message)+'. Check your signal and try again.</div>');
+  }
+};
+const cp = document.getElementById('copy');
+if(cp) cp.onclick = ()=>{
+  const txt = JSON.stringify(localState);
+  const pre = document.getElementById('dump');
+  pre.style.display = 'block'; pre.textContent = txt;
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
+  cp.textContent = 'Copied — paste it somewhere safe';
+};
+</script>
+</body>
+</html>
