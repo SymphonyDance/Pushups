@@ -84,13 +84,13 @@ const state = {
   players: [
     { id: dave, name: 'Dave', log: { [MON]:1, [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'11:38 AM' },
     { id: max,  name: 'Max',  log: { [MON]:1, [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'1:30 PM'  },
-    { id: alex, name: 'Alex', log: {          [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'3:46 PM'  }
+    { id: alex, name: 'Alex', log: { [MON]:1, [TUE]:1 }, weeksWon:0, weeksPlayed:0, loggedAt:'3:46 PM'  }
   ],
   feed: [
     { who:'Alex', txt:'hit 100',        at: t(25,15,46) },
     { who:'Max',  txt:'hit 100',        at: t(25,13,30) },
     { who:'Dave', txt:'hit 100',        at: t(25,11,38) },
-    { who:'Alex', txt:'hit 100',        at: t(25, 2, 2) },
+    { who:'Alex', txt:'hit 100',        at: t(24,22, 2) },
     { who:'Max',  txt:'hit 100',        at: t(24,21,11) },
     { who:'Dave', txt:'hit 100',        at: t(24,21,11) },
     { who:'Dave', txt:'started week 1', at: t(24,21,11) }
