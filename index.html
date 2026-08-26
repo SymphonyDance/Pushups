@@ -386,7 +386,7 @@ const firebaseConfig = {
 (function(){
   "use strict";
 
-  const APP_VERSION = '2.5.0';
+  const APP_VERSION = '2.5.1';
   // Board id comes from the URL hash, so a shared link carries the group.
   // No hash = the original board, so existing installs keep their data.
   const BOARD     = (location.hash || '').replace(/^#/,'').trim() || '';
@@ -402,7 +402,7 @@ const firebaseConfig = {
   let shared = false, nameDraft = '', friendDraft = '', banner = '';
   let syncState = 'off', syncAt = 0;          // off | live | offline | error
   let reachedServer = false;   // did we ever confirm the board's real contents?
-  let updateWorker = null, checking = false, restored = false;
+  let updateWorker = null, checking = false, restored = false, denied = false;
 
   /* ---------- dates ---------- */
   const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -462,7 +462,13 @@ const firebaseConfig = {
         if(!s.exists()) return null;
         return JSON.parse(s.data().value);
       }
-      catch(e){ syncState = 'offline'; reachedServer = false; return null; }
+      catch(e){
+        // A refused read is not the same as being offline — flag it, or the app looks
+        // healthy while silently showing only this phone's copy.
+        if(e && (e.code === 'permission-denied' || /permission/i.test(e.message||''))) denied = true;
+        console.warn('load failed', (e && (e.code||e.message)) || e);
+        syncState = denied ? 'error' : 'offline'; reachedServer = false; return null;
+      }
     }
     try{ const raw = localStorage.getItem(STATE_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
   }
@@ -1267,6 +1273,8 @@ const firebaseConfig = {
     myId = loadMe();
     if(fbError && !inClaude){
       banner = 'Can\u2019t reach the sync service \u2014 showing this phone\u2019s copy. Logs will send when it\u2019s back.';
+    } else if(denied){
+      banner = 'The board refused this phone \u2014 nothing is syncing. The Firestore rule needs fixing.';
     }
     if(restored){ banner = 'Restored the board from this phone \u2014 the server had lost it.'; await saveShared(); }
     if(touchSeen()) saveShared();

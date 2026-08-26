@@ -39,7 +39,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /pushup/{docId} {
-      allow read, write: if request.auth != null
+      // read and write MUST be separate: request.resource does not exist on a read,
+      // so folding the size check into one combined rule denies every read.
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
         && request.resource.data.value is string
         && request.resource.data.value.size() < 100000;
     }
