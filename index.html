@@ -141,6 +141,10 @@ a{color:var(--color-accent)}
   border-right:0;padding:11px 12px;font-weight:800;font-size:17px;color:var(--color-text);
 }
 .remtime:focus{outline:none;border-color:var(--color-accent)}
+.installcard{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;
+  margin:24px 20px 0;padding:14px 16px;border:2px solid var(--color-neutral-300);
+}
 .remnote{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 20px 0}
 .dismiss{
   background:transparent;border:0;padding:0;cursor:pointer;font-weight:800;font-size:11px;
@@ -353,6 +357,8 @@ a{color:var(--color-accent)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot, enableIndexedDbPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-p3Ruta10fkYOBcNpiiPrttJTWsUMGp8",
@@ -366,7 +372,7 @@ const firebaseConfig = {
 (function(){
   "use strict";
 
-  const APP_VERSION = '2.0.1';
+  const APP_VERSION = '2.2.0';
   // Board id comes from the URL hash, so a shared link carries the group.
   // No hash = the original board, so existing installs keep their data.
   const BOARD     = (location.hash || '').replace(/^#/,'').trim() || '';
@@ -400,11 +406,23 @@ const firebaseConfig = {
   /* ---------- storage ---------- */
   const inClaude = !!(window.storage && typeof window.storage.get === 'function');
   let db = null;
+  let authReady = null;
   if(!inClaude){
     try{
-      db = getFirestore(initializeApp(firebaseConfig));
+      const fbApp = initializeApp(firebaseConfig);
+      db = getFirestore(fbApp);
       // Queues writes made with no signal and serves a cold offline start from cache.
       enableIndexedDbPersistence(db).catch(()=>{});   // multi-tab or unsupported — fine
+      // Anonymous sign-in: a stable per-device identity so the Firestore rule can
+      // require auth. Resolves either way — a failure must not block the app.
+      const auth = getAuth(fbApp);
+      authReady = new Promise(resolve=>{
+        let settled = false;
+        const done = v => { if(!settled){ settled = true; resolve(v); } };
+        onAuthStateChanged(auth, u => { if(u) done(true); });
+        signInAnonymously(auth).catch(e=>{ console.warn('anon auth', e.code||e.message); done(false); });
+        setTimeout(()=>done(false), 8000);
+      });
     }
     catch(e){ console.error('firebase init', e); syncState = 'error'; }
   }
@@ -601,6 +619,13 @@ const firebaseConfig = {
   const RT_KEY = 'pushup-v2-remind' + (BOARD ? ':' + BOARD : '');
   function remindAt(){ try{ return localStorage.getItem(RT_KEY) || '20:00'; }catch(e){ return '20:00'; } }
   function setRemindAt(v){ try{ localStorage.setItem(RT_KEY, v); }catch(e){} }
+  const IN_KEY = 'pushup-v2-install:off';
+  function installOff(){ try{ return localStorage.getItem(IN_KEY)==='1'; }catch(e){ return false; } }
+  function setInstallOff(){ try{ localStorage.setItem(IN_KEY,'1'); }catch(e){} }
+  // Already installed? Then the card has nothing to say.
+  function isStandalone(){
+    return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+  }
   const RD_KEY = RT_KEY + ':off';
   function remindOff(){ try{ return localStorage.getItem(RD_KEY)==='1'; }catch(e){ return false; } }
   function setRemindOff(){ try{ localStorage.setItem(RD_KEY,'1'); }catch(e){} }
@@ -807,6 +832,14 @@ const firebaseConfig = {
           + '<div class="pmeta">at 100</div></div>').join('');
     }
     h += '<div class="footnote">100 or nothing — no partial credit. Seven days, then the board wipes and Sunday\'s verdict stands.</div>';
+    if(!installOff() && !isStandalone()){
+      h += '<div class="installcard">'
+        +  '<div style="font-size:12.5px;line-height:1.45;color:var(--color-neutral-800)">'
+        +    '<strong style="font-weight:800">Put it on your home screen.</strong> Share \u2192 Add to Home Screen. '
+        +    'One tap from the lock screen, and it works with no signal.</div>'
+        +  '<button class="dismiss" id="t-instoff">Got it</button>'
+        +  '</div>';
+    }
     if(!remindOff()){
       const added = remindAdded();
       h += '<div class="sechead"><div class="t">Daily reminder</div><div class="fill"></div></div>'
@@ -1083,6 +1116,7 @@ const firebaseConfig = {
     if(rt) rt.onchange = e => { setRemindAt(e.target.value || '20:00'); render(); };
     const cal = document.getElementById('t-cal'); if(cal) cal.onclick = addToCalendar;
     const roff = document.getElementById('t-remoff'); if(roff) roff.onclick = ()=>{ setRemindOff(); render(); };
+    const ioff = document.getElementById('t-instoff'); if(ioff) ioff.onclick = ()=>{ setInstallOff(); render(); };
     const bv = document.getElementById('b-verdict'); if(bv) bv.onclick = ()=>{ podium=true; render(); };
     const bver = document.getElementById('b-ver');
     if(bver) bver.onclick = ()=>{
@@ -1152,6 +1186,7 @@ const firebaseConfig = {
   }
 
   async function boot(){
+    if(authReady) await authReady;      // rules may require auth; read after sign-in
     const loaded = await loadShared();
     if(!loaded && db && !reachedServer){
       // Could not read the board. Do NOT fall through to onboarding — that path writes.
