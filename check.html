@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Check — 100 Push-Ups</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f2f2;--text:#201e1d;--accent:#ec3013;--n700:#605d5d;--n800:#444141;
+  --divider:color-mix(in srgb,#201e1d 40%,transparent)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Archivo",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:460px;margin:0 auto;padding:calc(26px + env(safe-area-inset-top)) 20px 40px}
+.label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--n700)}
+h1{font-weight:800;font-size:38px;line-height:.92;letter-spacing:-.04em;margin:12px 0 0}
+p{font-size:13.5px;color:var(--n800);max-width:38ch}
+.rule{height:2px;background:var(--divider);margin:20px 0}
+.row{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;
+  padding:11px 0;border-bottom:1px solid var(--divider);align-items:start}
+.mark{font-weight:800;font-size:15px;line-height:1.4}
+.ok{color:#2f7d32}.bad{color:var(--accent)}.wait{color:var(--n700)}
+.name{font-weight:800;font-size:14.5px}
+.detail{font-size:12px;line-height:1.45;color:var(--n800);margin-top:3px;
+  overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.verdict{background:var(--accent);color:var(--bg);padding:16px 18px;margin-top:22px}
+.verdict.good{background:var(--text)}
+.vt{font-weight:800;font-size:18px;letter-spacing:-.02em}
+.vb{font-size:13px;line-height:1.5;margin-top:6px}
+button{font-family:inherit;font-weight:800;font-size:13px;letter-spacing:.08em;
+  text-transform:uppercase;border:0;border-radius:0;padding:15px 18px;
+  background:var(--text);color:var(--bg);width:100%;margin-top:14px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="label">Diagnostic</div>
+  <h1>WHAT’S<br>BROKEN?</h1>
+  <p style="margin-top:12px">This runs the same steps the app runs, one at a time. Screenshot the result and send it.</p>
+  <div class="rule"></div>
+  <div id="rows"></div>
+  <div id="verdict"></div>
+  <button onclick="location.reload()">Run again</button>
+</div>
+
+<script>
+var STEPS = [
+  ['ua',       'This browser'],
+  ['mode',     'How it was opened'],
+  ['store',    'Local storage'],
+  ['sw',       'Service worker'],
+  ['net',      'Internet reachable'],
+  ['cdn',      'Firebase files load'],
+  ['init',     'Firebase starts'],
+  ['auth',     'Anonymous sign-in'],
+  ['read',     'Read the board'],
+  ['write',    'Write to the board']
+];
+var rowsEl = document.getElementById('rows');
+var els = {};
+STEPS.forEach(function(s){
+  var d = document.createElement('div');
+  d.className = 'row';
+  d.innerHTML = '<div class="mark wait" data-m>·</div><div><div class="name"></div><div class="detail"></div></div>';
+  d.querySelector('.name').textContent = s[1];
+  rowsEl.appendChild(d);
+  els[s[0]] = d;
+});
+function set(k, ok, detail){
+  var d = els[k]; if(!d) return;
+  var m = d.querySelector('[data-m]');
+  m.textContent = ok === null ? '–' : (ok ? '✓' : '✕');
+  m.className = 'mark ' + (ok === null ? 'wait' : (ok ? 'ok' : 'bad'));
+  d.querySelector('.detail').textContent = detail || '';
+}
+var fails = [];
+function fail(k, msg){ fails.push([k, msg]); }
+
+// --- synchronous checks ---
+var ua = navigator.userAgent;
+var isIOS = /iPad|iPhone|iPod/.test(ua);
+var inApp = /FBAN|FBAV|Messenger|Instagram|Line|WhatsApp/i.test(ua);
+var browser = /CriOS|Chrome/.test(ua) ? 'Chrome' : (/FxiOS|Firefox/.test(ua) ? 'Firefox' :
+              (/Safari/.test(ua) ? 'Safari' : 'Other'));
+set('ua', true, browser + ' · ' + (isIOS ? 'iPhone/iPad' : (/Android/.test(ua) ? 'Android' : 'Desktop')));
+
+var standalone = !!(navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+set('mode', !inApp, inApp ? 'Inside an app’s built-in browser — this blocks installing and can block storage.'
+                          : (standalone ? 'Installed app' : 'Normal browser tab'));
+if(inApp) fail('mode', 'in-app browser');
+
+try{
+  localStorage.setItem('__t','1'); localStorage.removeItem('__t');
+  set('store', true, 'Working');
+}catch(e){
+  set('store', false, 'Blocked (' + (e.name||'error') + ') — private browsing or blocked cookies.');
+  fail('store', 'storage blocked');
+}
+
+if(!('serviceWorker' in navigator)){
+  set('sw', null, 'Not supported here — the app still works, just not offline.');
+} else {
+  navigator.serviceWorker.getRegistrations().then(function(r){
+    set('sw', true, r.length ? r.length + ' registered' : 'None yet (registers on first normal load)');
+  }).catch(function(){ set('sw', null, 'Unavailable'); });
+}
+
+// --- async checks ---
+var V = 'https://www.gstatic.com/firebasejs/10.12.2/';
+var cfg = {
+  apiKey: "AIzaSyB-p3Ruta10fkYOBcNpiiPrttJTWsUMGp8",
+  authDomain: "pushup-challenge-76699.firebaseapp.com",
+  projectId: "pushup-challenge-76699",
+  storageBucket: "pushup-challenge-76699.firebasestorage.app",
+  messagingSenderId: "833638713825",
+  appId: "1:833638713825:web:d7f96ed865dc5d4927eaa0"
+};
+
+function verdict(){
+  var v = document.getElementById('verdict');
+  if(!fails.length){
+    v.className = 'verdict good';
+    v.innerHTML = '<div class="vt">Everything passed.</div><div class="vb">The app should work on this phone. '
+      + 'If it still doesn’t, the version installed is old — open the site in the browser and add it again.</div>';
+    return;
+  }
+  var first = fails[0];
+  var advice = {
+    'in-app browser': 'Open the link in Safari or Chrome instead of tapping it inside Messenger.',
+    'storage blocked': 'Turn off private browsing, and allow cookies for this site.',
+    'cdn': 'Something on this network is blocking Google’s servers. Try mobile data instead of Wi-Fi.',
+    'init': 'The app’s configuration was rejected. Send me this screen.',
+    'auth': 'Anonymous sign-in is switched off in the Firebase console — that has to be enabled.',
+    'read': 'The database refused to be read. Usually the security rule, or sign-in being off.',
+    'write': 'The database refused a write. Usually the security rule.'
+  }[first[1]] || 'Send me this screen.';
+  v.className = 'verdict';
+  v.innerHTML = '<div class="vt">Stopped at: ' + first[1] + '</div><div class="vb">' + advice + '</div>';
+}
+
+(async function(){
+  // net
+  try{
+    await fetch('https://www.gstatic.com/generate_204', {mode:'no-cors', cache:'no-store'});
+    set('net', true, 'Online');
+  }catch(e){
+    set('net', navigator.onLine, navigator.onLine ? 'Browser says online, but a request failed.' : 'Offline');
+  }
+
+  var mods;
+  try{
+    mods = await Promise.all([
+      import(V + 'firebase-app.js'),
+      import(V + 'firebase-firestore.js'),
+      import(V + 'firebase-auth.js')
+    ]);
+    set('cdn', true, 'All three loaded');
+  }catch(e){
+    set('cdn', false, String(e && (e.message || e)).slice(0,180));
+    fail('cdn', 'cdn');
+    ['init','auth','read','write'].forEach(function(k){ set(k, null, 'Skipped'); });
+    return verdict();
+  }
+
+  var app;
+  try{
+    app = mods[0].initializeApp(cfg);
+    set('init', true, 'Project ' + cfg.projectId);
+  }catch(e){
+    set('init', false, String(e && (e.code || e.message)).slice(0,180));
+    fail('init', 'init');
+    ['auth','read','write'].forEach(function(k){ set(k, null, 'Skipped'); });
+    return verdict();
+  }
+
+  var signedIn = false;
+  try{
+    var res = await mods[2].signInAnonymously(mods[2].getAuth(app));
+    signedIn = true;
+    set('auth', true, 'Signed in · ' + (res.user.uid || '').slice(0,10) + '…');
+  }catch(e){
+    var code = (e && e.code) || '';
+    set('auth', false, code + (code === 'auth/operation-not-allowed'
+      ? ' — Anonymous sign-in is disabled in the Firebase console.' : ' ' + (e.message||'')).slice(0,180));
+    fail('auth', 'auth');
+  }
+
+  var fs = mods[1], db = fs.getFirestore(app), ref = fs.doc(db, 'pushup', 'pushup-v2-state');
+  var board = null;
+  try{
+    var snap = await fs.getDoc(ref);
+    if(snap.exists()){
+      board = JSON.parse(snap.data().value);
+      var names = (board.players||[]).map(function(p){ return p.name; }).join(', ');
+      set('read', true, (board.players||[]).length + ' on the board' + (names ? ': ' + names : '')
+        + ' · week ' + (board.week||'?'));
+    } else {
+      set('read', true, 'Reached it, but the board is empty.');
+    }
+  }catch(e){
+    set('read', false, String((e && e.code) || (e && e.message) || e).slice(0,180));
+    fail('read', 'read');
+    set('write', null, 'Skipped');
+    return verdict();
+  }
+
+  // Harmless write: a probe field on a separate doc, never the board itself.
+  try{
+    await fs.setDoc(fs.doc(db, 'pushup', '__probe'), {at: Date.now()});
+    set('write', true, 'Allowed');
+  }catch(e){
+    set('write', false, String((e && e.code) || (e && e.message) || e).slice(0,180));
+    fail('write', 'write');
+  }
+  verdict();
+})();
+</script>
+</body>
+</html>

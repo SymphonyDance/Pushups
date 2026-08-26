@@ -1,4 +1,4 @@
-const CACHE = 'pushups-v21';
+const CACHE = 'pushups-v22';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

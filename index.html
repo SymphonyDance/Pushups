@@ -357,11 +357,22 @@ a{color:var(--color-accent)}
 <div class="shell" id="app"><div class="boot">Loading…</div></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, enableIndexedDbPersistence }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+let initializeApp, getFirestore, doc, getDoc, setDoc, onSnapshot, enableIndexedDbPersistence,
+    getAuth, signInAnonymously, onAuthStateChanged;
+let fbError = null;
+async function loadFirebase(){
+  const V = "https://www.gstatic.com/firebasejs/10.12.2/";
+  const [a, f, u] = await Promise.all([
+    import(V + "firebase-app.js"),
+    import(V + "firebase-firestore.js"),
+    import(V + "firebase-auth.js")
+  ]);
+  ({ initializeApp } = a);
+  ({ getFirestore, doc, getDoc, setDoc, onSnapshot, enableIndexedDbPersistence } = f);
+  ({ getAuth, signInAnonymously, onAuthStateChanged } = u);
+}
+try{ await loadFirebase(); }
+catch(e){ fbError = e; console.error('firebase load failed', e); }
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-p3Ruta10fkYOBcNpiiPrttJTWsUMGp8",
@@ -375,7 +386,7 @@ const firebaseConfig = {
 (function(){
   "use strict";
 
-  const APP_VERSION = '2.4.0';
+  const APP_VERSION = '2.5.0';
   // Board id comes from the URL hash, so a shared link carries the group.
   // No hash = the original board, so existing installs keep their data.
   const BOARD     = (location.hash || '').replace(/^#/,'').trim() || '';
@@ -410,7 +421,7 @@ const firebaseConfig = {
   const inClaude = !!(window.storage && typeof window.storage.get === 'function');
   let db = null;
   let authReady = null;
-  if(!inClaude){
+  if(!inClaude && !fbError){
     try{
       const fbApp = initializeApp(firebaseConfig);
       db = getFirestore(fbApp);
@@ -1219,7 +1230,23 @@ const firebaseConfig = {
       app.innerHTML = viewUnreachable();
       document.getElementById('u-retry').onclick = ()=>{
         app.innerHTML = '<div class="boot">Loading\u2026</div>';
-        boot();
+        // If boot never paints — an uncaught throw, a hung import — replace "Loading…" with
+  // something actionable instead of leaving a dead screen.
+  const bootWatch = setTimeout(()=>{
+    const el = document.getElementById('app');
+    if(el && el.querySelector('.boot')){
+      el.innerHTML = '<div class="boot" style="text-align:left;padding:0 20px">'
+        + '<div style="font-weight:800;font-size:20px;letter-spacing:-.02em">Couldn\u2019t start.</div>'
+        + '<div style="font-size:13.5px;line-height:1.5;color:var(--color-neutral-800);margin-top:10px;max-width:34ch">'
+        + 'Something blocked the app from loading \u2014 usually a network filter or a private-browsing window. '
+        + 'Try again on normal Wi-Fi or mobile data, in Safari or Chrome rather than an in-app browser.</div>'
+        + '<button class="btn btn-primary" style="margin-top:18px" onclick="location.reload()">Try again</button>'
+        + '</div>';
+    }
+  }, 12000);
+  window.addEventListener('error', e=>console.error('uncaught', e.message));
+  window.addEventListener('unhandledrejection', e=>console.error('unhandled', e.reason));
+  boot().then(()=>clearTimeout(bootWatch)).catch(e=>console.error('boot failed', e));
       };
       watch();   // if the connection recovers, the snapshot adopts the real board
       return;
@@ -1238,6 +1265,9 @@ const firebaseConfig = {
     if(!state.players) state.players = [];
     if(!state.weekStart) state.weekStart = mondayOf(today());
     myId = loadMe();
+    if(fbError && !inClaude){
+      banner = 'Can\u2019t reach the sync service \u2014 showing this phone\u2019s copy. Logs will send when it\u2019s back.';
+    }
     if(restored){ banner = 'Restored the board from this phone \u2014 the server had lost it.'; await saveShared(); }
     if(touchSeen()) saveShared();
     rollIfNeeded(true);
@@ -1246,7 +1276,23 @@ const firebaseConfig = {
     if(restored) setTimeout(()=>{ banner=''; render(); }, 8000);
     setInterval(()=>{ if(rollIfNeeded(true)) render(); }, 60000);
   }
-  boot();
+  // If boot never paints — an uncaught throw, a hung import — replace "Loading…" with
+  // something actionable instead of leaving a dead screen.
+  const bootWatch = setTimeout(()=>{
+    const el = document.getElementById('app');
+    if(el && el.querySelector('.boot')){
+      el.innerHTML = '<div class="boot" style="text-align:left;padding:0 20px">'
+        + '<div style="font-weight:800;font-size:20px;letter-spacing:-.02em">Couldn\u2019t start.</div>'
+        + '<div style="font-size:13.5px;line-height:1.5;color:var(--color-neutral-800);margin-top:10px;max-width:34ch">'
+        + 'Something blocked the app from loading \u2014 usually a network filter or a private-browsing window. '
+        + 'Try again on normal Wi-Fi or mobile data, in Safari or Chrome rather than an in-app browser.</div>'
+        + '<button class="btn btn-primary" style="margin-top:18px" onclick="location.reload()">Try again</button>'
+        + '</div>';
+    }
+  }, 12000);
+  window.addEventListener('error', e=>console.error('uncaught', e.message));
+  window.addEventListener('unhandledrejection', e=>console.error('unhandled', e.reason));
+  boot().then(()=>clearTimeout(bootWatch)).catch(e=>console.error('boot failed', e));
 
 })();
 </script>
